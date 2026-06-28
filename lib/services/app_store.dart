@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../config/api_config.dart';
+import '../models/home_response.dart';
 import '../models/movie_meta.dart';
 import '../models/provider_info.dart';
 import '../models/resolve_result.dart';
@@ -12,8 +13,9 @@ import '../services/settings_service.dart';
 /// Estado global da aplicação exposto via `Provider`.
 ///
 /// Mantém:
-/// - configuração da API (URL base)
+/// - configuração da API (URL base + toggle de proxy de stream)
 /// - cache de populares (filmes e séries)
+/// - cache de home (4 linhas de destaque, v1.4.0)
 /// - favoritos
 /// - provedores
 class AppStore extends ChangeNotifier {
@@ -32,14 +34,31 @@ class AppStore extends ChangeNotifier {
   String get baseUrl => settings.baseUrl;
   bool get isConfigured => baseUrl.isNotEmpty;
 
+  /// `true` se as URLs de vídeo devem passar por `/v1/stream?url=...`.
+  bool get useStreamProxy => settings.useStreamProxy;
+
   Future<void> setBaseUrl(String url) async {
     settings.baseUrl = url;
     _api = ApiService(config: ApiConfig(url));
     // Invalida caches ao trocar de servidor.
     _moviesCache = null;
     _tvCache = null;
+    _homeMoviesCache = null;
+    _homeTvCache = null;
     _providersCache = null;
     notifyListeners();
+  }
+
+  void setUseStreamProxy(bool value) {
+    settings.useStreamProxy = value;
+    notifyListeners();
+  }
+
+  /// Aplica o proxy de stream (se habilitado) a uma URL de vídeo.
+  String resolveVideoUrl(String directUrl) {
+    if (directUrl.isEmpty) return directUrl;
+    if (useStreamProxy) return _api.streamUrl(directUrl);
+    return directUrl;
   }
 
   // ===================== Cache populares =====================
@@ -86,6 +105,54 @@ class AppStore extends ChangeNotifier {
       _tvCache = const [];
     } finally {
       _loadingTv = false;
+      notifyListeners();
+    }
+  }
+
+  // ===================== Cache home (v1.4.0) =====================
+
+  HomeResponse? _homeMoviesCache;
+  HomeResponse? _homeTvCache;
+  bool _loadingHomeMovies = false;
+  bool _loadingHomeTv = false;
+  String? _homeMoviesError;
+  String? _homeTvError;
+
+  HomeResponse? get homeMovies => _homeMoviesCache;
+  HomeResponse? get homeTv => _homeTvCache;
+  bool get isLoadingHomeMovies => _loadingHomeMovies;
+  bool get isLoadingHomeTv => _loadingHomeTv;
+  String? get homeMoviesError => _homeMoviesError;
+  String? get homeTvError => _homeTvError;
+
+  Future<void> loadHomeMovies({bool force = false}) async {
+    if (!force && (_homeMoviesCache != null || _loadingHomeMovies)) return;
+    _loadingHomeMovies = true;
+    _homeMoviesError = null;
+    notifyListeners();
+    try {
+      _homeMoviesCache = await _api.home(type: 'movies');
+    } catch (e) {
+      _homeMoviesError = e.toString();
+      _homeMoviesCache = null;
+    } finally {
+      _loadingHomeMovies = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadHomeTv({bool force = false}) async {
+    if (!force && (_homeTvCache != null || _loadingHomeTv)) return;
+    _loadingHomeTv = true;
+    _homeTvError = null;
+    notifyListeners();
+    try {
+      _homeTvCache = await _api.home(type: 'tvshows');
+    } catch (e) {
+      _homeTvError = e.toString();
+      _homeTvCache = null;
+    } finally {
+      _loadingHomeTv = false;
       notifyListeners();
     }
   }

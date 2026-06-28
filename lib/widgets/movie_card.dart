@@ -75,8 +75,8 @@ class MovieCard extends StatelessWidget {
                   right: 6,
                   child: _FavBadge(active: fav),
                 ),
-                // Ano
-                if (meta.year > 0)
+                // Ano + Nota IMDB (quando disponível)
+                if (meta.year > 0 || meta.imdbRating > 0)
                   Positioned(
                     bottom: 6,
                     left: 6,
@@ -87,13 +87,42 @@ class MovieCard extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        meta.year.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (meta.imdbRating > 0) ...[
+                            const Icon(Icons.star_rounded,
+                                size: 10, color: SupercineColors.warning),
+                            const SizedBox(width: 2),
+                            Text(
+                              meta.imdbRatingFormatted,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (meta.year > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '• ${meta.year}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ] else
+                            Text(
+                              meta.year.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

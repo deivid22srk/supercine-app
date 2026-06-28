@@ -5,12 +5,13 @@ import '../config/api_config.dart';
 import '../config/api_exception.dart';
 import '../models/catalog_response.dart';
 import '../models/health_response.dart';
+import '../models/home_response.dart';
 import '../models/movie_meta.dart';
 import '../models/provider_info.dart';
 import '../models/resolve_result.dart';
 import '../models/seasons_response.dart';
 
-/// Cliente da Output API do Supercine Proxy (v1.3.0).
+/// Cliente da Output API do Supercine Proxy (v1.4.0).
 ///
 /// Todos os métodos lançam [ApiException] em caso de erro.
 class ApiService {
@@ -65,6 +66,31 @@ class ApiService {
       'limit': limit.toString(),
     }, timeout: ApiConfig.popularTimeout);
     return CatalogResponse.fromJson(json).items;
+  }
+
+  /// `GET /v1/catalog/home?type=<movies|tvshows>` (v1.4.0).
+  ///
+  /// Retorna 4 linhas de destaque (Lançamentos, Destaques, Recentes,
+  /// Sugeridos) com 12 itens cada. É o endpoint recomendado para montar
+  /// a tela inicial estilo Netflix.
+  Future<HomeResponse> home({String type = 'movies'}) async {
+    final json = await _get('/v1/catalog/home', {
+      'type': type,
+    }, timeout: ApiConfig.popularTimeout);
+    return HomeResponse.fromJson(json);
+  }
+
+  /// Constrói a URL de stream proxyada (`/v1/stream?url=...`).
+  ///
+  /// Use para reproduzir URLs retornadas por `/v1/resolve` ou
+  /// `/v1/resolveEpisode` em clientes baseados em WebView/navegador.
+  /// Clientes nativos (ExoPlayer, AVPlayer, VLC) podem usar a URL
+  /// direta sem o proxy.
+  ///
+  /// Veja a documentação do endpoint `GET /v1/stream` para detalhes.
+  String streamUrl(String videoUrl) {
+    if (videoUrl.isEmpty) return videoUrl;
+    return config.url('/v1/stream', {'url': videoUrl});
   }
 
   /// `GET /v1/catalog/search?q=<texto>&limit=N`

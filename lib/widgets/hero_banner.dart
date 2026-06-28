@@ -148,6 +148,30 @@ class _HeroItem extends StatelessWidget {
                               ),
                             ),
                           ],
+                          if (meta.imdbRating > 0) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.star_rounded,
+                                color: SupercineColors.warning, size: 14),
+                            const SizedBox(width: 2),
+                            Text(
+                              meta.imdbRatingFormatted,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                          if (meta.runtimeFormatted.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '• ${meta.runtimeFormatted}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                           const Spacer(),
                           IconButton(
                             onPressed: () => store.toggleFavorite(meta),

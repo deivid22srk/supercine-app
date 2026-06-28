@@ -2,6 +2,7 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../models/resolve_result.dart';
 import '../theme/app_theme.dart';
 import 'detail_screen.dart';
 
@@ -60,8 +61,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _videoController?.dispose();
     _videoController = null;
 
-    final url = _args.videos[idx].url as String;
-    final isHls = url.toLowerCase().endsWith('.m3u8');
+    final videoUrl = _args.videos[idx];
+    final url = videoUrl.url;
+    // Detecta HLS tanto pela extensão quanto pela qualidade retornada
+    // (quando proxyada, a URL já vem com `/v1/stream?url=...` que esconde
+    // a extensão, então a flag `isHls` da `VideoUrl` é mais confiável).
+    final isHls = videoUrl.isHls ||
+        Uri.tryParse(url)?.path.toLowerCase().endsWith('.m3u8') == true;
 
     final newVideoController = isHls
         ? VideoPlayerController.networkUrl(Uri.parse(url),
@@ -181,6 +187,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ],
                     ),
                   ),
+                  if (_args.proxied)
+                    Tooltip(
+                      message: 'Reproduzindo via proxy /v1/stream',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: SupercineColors.brand.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: SupercineColors.brand.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.vpn_lock_rounded,
+                                color: SupercineColors.brand, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'PROXY',
+                              style: TextStyle(
+                                color: SupercineColors.brand,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   if (_args.servers.isNotEmpty)
                     PopupMenuButton<int>(
                       tooltip: 'Servidores',

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:supercine_app/models/home_response.dart';
 import 'package:supercine_app/models/movie_meta.dart';
 import 'package:supercine_app/models/resolve_result.dart';
 import 'package:supercine_app/models/seasons_response.dart';
@@ -82,6 +83,87 @@ void main() {
       expect(s.seasonCount, 2);
       expect(s.seasons.first.episodes.first.title, 'Piloto');
       expect(s.seasons.last.episodes, isEmpty);
+    });
+  });
+
+  group('HomeResponse (v1.4.0)', () {
+    test('fromJson parseia 4 linhas com itens', () {
+      final json = {
+        'type': 'movies',
+        'count': 4,
+        'rows': [
+          {
+            'category': 'lancamentos',
+            'label': '🔥 Lançamentos',
+            'count': 12,
+            'items': [
+              {
+                'imdb': 'tt42192165',
+                'type': 'movie',
+                'embed_type': 'movies',
+                'title_ptbr': 'O Assassinato de Rachel Nickell',
+                'title_orig': '',
+                'year': 2026,
+                'available': true,
+                'server_count': 0,
+                'provider': 'supercine',
+                'imdb_rating': 6.8,
+                'runtime': '96',
+                'categories': ['Crime', 'Documentário', 'Lançamentos'],
+                'post_id': '1447376',
+              }
+            ],
+          },
+          {
+            'category': 'destaques',
+            'label': '⭐ Destaques',
+            'count': 12,
+            'items': [],
+          },
+        ],
+      };
+      final h = HomeResponse.fromJson(json);
+      expect(h.type, 'movies');
+      expect(h.count, 4);
+      expect(h.rows.length, 2);
+      expect(h.rows.first.category, HomeCategory.lancamentos);
+      expect(h.rows.first.label, '🔥 Lançamentos');
+
+      final item = h.rows.first.items.first;
+      expect(item.imdb, 'tt42192165');
+      expect(item.imdbRating, 6.8);
+      expect(item.imdbRatingFormatted, '6.8');
+      expect(item.runtime, '96');
+      expect(item.runtimeFormatted, '1h 36min');
+      expect(item.categories, ['Crime', 'Documentário', 'Lançamentos']);
+      expect(item.postId, '1447376');
+      expect(item.hasHomeExtras, isTrue);
+    });
+
+    test('runtimeFormatted lida com horas exatas e minutos <60', () {
+      final m1 = MovieMeta(
+        imdb: 'x', type: 'movie', embedType: 'movies',
+        titlePtbr: '', titleOrig: '', year: 0, posterUrl: '', backdropUrl: '',
+        cast: '', rank: 0, available: false, serverCount: 0, provider: '',
+        runtime: '120',
+      );
+      expect(m1.runtimeFormatted, '2h');
+
+      final m2 = MovieMeta(
+        imdb: 'x', type: 'movie', embedType: 'movies',
+        titlePtbr: '', titleOrig: '', year: 0, posterUrl: '', backdropUrl: '',
+        cast: '', rank: 0, available: false, serverCount: 0, provider: '',
+        runtime: '45',
+      );
+      expect(m2.runtimeFormatted, '45min');
+
+      final m3 = MovieMeta(
+        imdb: 'x', type: 'movie', embedType: 'movies',
+        titlePtbr: '', titleOrig: '', year: 0, posterUrl: '', backdropUrl: '',
+        cast: '', rank: 0, available: false, serverCount: 0, provider: '',
+        runtime: '',
+      );
+      expect(m3.runtimeFormatted, '');
     });
   });
 }

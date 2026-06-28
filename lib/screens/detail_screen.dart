@@ -96,15 +96,23 @@ class _DetailScreenState extends State<DetailScreen> {
       }
       if (!mounted) return;
       setState(() => _loadingResolve = false);
+      // Aplica o proxy de stream quando habilitado (v1.4.0).
+      final effectiveVideos = result.videos
+          .map((v) => VideoUrl(
+                url: store.resolveVideoUrl(v.url),
+                quality: v.quality,
+              ))
+          .toList();
       Navigator.of(context).pushNamed(
         '/player',
         arguments: PlayerArgs(
-          videos: result.videos,
+          videos: effectiveVideos,
           title: _meta.displayTitle,
           subtitle: _meta.year > 0 ? _meta.year.toString() : null,
           servers: result.servers
               .map((s) => ServerOption(name: s.name, description: s.description))
               .toList(),
+          proxied: store.useStreamProxy,
         ),
       );
     } on ApiException catch (e) {
@@ -140,10 +148,17 @@ class _DetailScreenState extends State<DetailScreen> {
       }
       if (!mounted) return;
       setState(() => _loadingResolve = false);
+      // Aplica o proxy de stream quando habilitado (v1.4.0).
+      final effectiveVideos = result.videos
+          .map((v) => VideoUrl(
+                url: store.resolveVideoUrl(v.url),
+                quality: v.quality,
+              ))
+          .toList();
       Navigator.of(context).pushNamed(
         '/player',
         arguments: PlayerArgs(
-          videos: result.videos,
+          videos: effectiveVideos,
           title: _meta.displayTitle,
           subtitle:
               'T$season E$episode${epTitle != null && epTitle.isNotEmpty ? ' • $epTitle' : ''}',
@@ -151,6 +166,7 @@ class _DetailScreenState extends State<DetailScreen> {
               .map((s) => ServerOption(
                   name: s.name, description: s.description))
               .toList(),
+          proxied: store.useStreamProxy,
         ),
       );
     } on ApiException catch (e) {
@@ -269,6 +285,11 @@ class _DetailScreenState extends State<DetailScreen> {
                         color: SupercineColors.brand,
                       ),
                       if (_meta.year > 0) _Chip(_meta.year.toString()),
+                      if (_meta.imdbRating > 0)
+                        _Chip('★ ${_meta.imdbRatingFormatted}',
+                            color: SupercineColors.warning),
+                      if (_meta.runtimeFormatted.isNotEmpty)
+                        _Chip(_meta.runtimeFormatted),
                       if (_meta.available)
                         const _Chip('Disponível',
                             color: SupercineColors.success)
@@ -509,12 +530,24 @@ class _InfoTable extends StatelessWidget {
     if (meta.type.isNotEmpty) {
       rows.add(_Row('Tipo', meta.isTv ? 'Série' : 'Filme'));
     }
+    if (meta.imdbRating > 0) {
+      rows.add(_Row('Nota IMDB', '★ ${meta.imdbRatingFormatted} / 10'));
+    }
+    if (meta.runtimeFormatted.isNotEmpty) {
+      rows.add(_Row('Duração', meta.runtimeFormatted));
+    }
+    if (meta.categories.isNotEmpty) {
+      rows.add(_Row('Categorias', meta.categories.join(', ')));
+    }
     rows.add(_Row('IMDB', meta.imdb));
     if (meta.provider.isNotEmpty) {
       rows.add(_Row('Provedor', meta.provider));
     }
     if (meta.rank > 0) {
       rows.add(_Row('Popularidade IMDB', '#${meta.rank}'));
+    }
+    if (meta.postId.isNotEmpty) {
+      rows.add(_Row('Post ID', meta.postId));
     }
     return Container(
       padding: const EdgeInsets.all(14),
@@ -528,6 +561,7 @@ class _InfoTable extends StatelessWidget {
             .map((r) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
                         width: 140,
@@ -753,15 +787,17 @@ class _EpisodeTile extends StatelessWidget {
 }
 
 class PlayerArgs {
-  final List<dynamic> videos;
+  final List<VideoUrl> videos;
   final String title;
   final String? subtitle;
   final List<ServerOption> servers;
+  final bool proxied;
   const PlayerArgs({
     required this.videos,
     required this.title,
     this.subtitle,
     required this.servers,
+    this.proxied = false,
   });
 }
 

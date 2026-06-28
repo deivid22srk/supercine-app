@@ -204,6 +204,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
           _SectionCard(
+            title: 'Reprodução',
+            subtitle:
+                'Use o proxy de streaming /v1/stream para contornar o '
+                'bloqueio de Origin dos CDNs dos hosters.',
+            icon: Icons.play_circle_rounded,
+            child: _ProxyToggle(store: store),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
             title: 'Status do proxy',
             subtitle: 'Health check + provedores registrados.',
             icon: Icons.health_and_safety_rounded,
@@ -212,13 +221,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           _SectionCard(
             title: 'Sobre o app',
-            subtitle: 'Supercine App v1.0.0 • Flutter • HBO Max-like UI.',
+            subtitle: 'Supercine App v1.1.0 • Flutter • HBO Max-like UI.',
             icon: Icons.info_outline_rounded,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _row('Versão', '1.0.0'),
-                _row('API', 'Output API v1.3.0'),
+                _row('Versão', '1.1.0'),
+                _row('API', 'Output API v1.4.0'),
                 _row('Desenvolvido por', '@deivid22srk'),
               ],
             ),
@@ -450,6 +459,83 @@ class _ProxyStatusState extends State<_ProxyStatus> {
             onPressed: _refresh,
             icon: const Icon(Icons.refresh_rounded, size: 16),
             label: const Text('Atualizar'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Toggle para habilitar/desabilitar o proxy de stream `/v1/stream` (v1.4.0).
+class _ProxyToggle extends StatelessWidget {
+  final AppStore store;
+  const _ProxyToggle({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final value = store.useStreamProxy;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          value: value,
+          onChanged: (v) => store.setUseStreamProxy(v),
+          activeColor: SupercineColors.brand,
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            'Usar proxy de stream',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          subtitle: const Text(
+            'Repassa URLs de vídeo por /v1/stream?url=...',
+            style: TextStyle(color: SupercineColors.textMuted, fontSize: 12),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: (value
+                    ? SupercineColors.brand
+                    : SupercineColors.info)
+                .withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: (value
+                      ? SupercineColors.brand
+                      : SupercineColors.info)
+                  .withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                value ? Icons.vpn_lock_rounded : Icons.bolt_rounded,
+                color: value
+                    ? SupercineColors.brand
+                    : SupercineColors.info,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value
+                      ? 'ON: todas as URLs passam pelo proxy. Necessário '
+                          'para WebView/navegador. Pode aumentar a latência.'
+                      : 'OFF (padrão): usa URLs diretas. Recomendado para '
+                          'Flutter (ExoPlayer nativo). Ative só se aparecer '
+                          'erro 403 do CDN ao reproduzir.',
+                  style: TextStyle(
+                    color: value
+                        ? SupercineColors.brand
+                        : SupercineColors.info,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
