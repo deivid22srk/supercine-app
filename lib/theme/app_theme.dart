@@ -199,22 +199,22 @@ class SupercineTheme {
     );
   }
 
-  static LinearGradient get brandGradient => const LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          SupercineColors.brandGradientStart,
-          SupercineColors.brandGradientEnd,
-        ],
-      );
+  static const LinearGradient brandGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      SupercineColors.brandGradientStart,
+      SupercineColors.brandGradientEnd,
+    ],
+  );
 
-  static LinearGradient get heroGradient => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x00000000),
-          Color(0x66000000),
-          Color(0xE6000000),
-        ],
-      );
+  static const LinearGradient heroGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x00000000),
+      Color(0x66000000),
+      Color(0xE6000000),
+    ],
+  );
 }

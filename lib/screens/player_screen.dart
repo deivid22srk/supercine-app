@@ -55,7 +55,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     await _chewieController?.dispose();
     _chewieController = null;
-    await _videoController?.dispose();
+    _videoController?.dispose();
     _videoController = null;
 
     final url = _args.videos[idx].url as String;
@@ -97,7 +97,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         bufferedColor: SupercineColors.brand.withValues(alpha: 0.3),
         backgroundColor: SupercineColors.surfaceAlt,
       ),
-      errorBuilder: (message) => Center(
+      errorBuilder: (context, errorMessage) => Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -107,7 +107,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: SupercineColors.danger, size: 48),
               const SizedBox(height: 12),
               Text(
-                message,
+                errorMessage,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white),
               ),

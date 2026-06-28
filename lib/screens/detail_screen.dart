@@ -27,7 +27,6 @@ class _DetailScreenState extends State<DetailScreen> {
   MovieMeta? _metaArg;
   bool _loadingResolve = false;
   String? _resolveError;
-  ResolveResult? _resolveResult;
 
   // Séries
   SeasonsResponse? _seasons;

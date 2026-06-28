@@ -66,8 +66,8 @@ class ResolveResult {
       provider: json['provider'] as String? ?? '',
       imdb: json['imdb'] as String? ?? '',
       type: json['type'] as String? ?? 'movies',
-      season: json['season'] as num??.toInt(),
-      episode: json['episode'] as num??.toInt(),
+      season: (json['season'] as num?)?.toInt(),
+      episode: (json['episode'] as num?)?.toInt(),
       servers: rawServers
           .map((e) => Server.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),

@@ -59,23 +59,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await context.read<AppStore>().setBaseUrl(url);
       final health = await context.read<AppStore>().api.health();
       final providers = await context.read<AppStore>().api.providers();
+      if (!mounted) return;
       setState(() {
         _testOk = true;
         _testResult =
             '✓ Conectado! Proxy v${health.version} • ${providers.count} provedor(es) ativo(s).';
       });
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _testOk = false;
         _testResult = e.message;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _testOk = false;
         _testResult = e.toString();
       });
     } finally {
-      setState(() => _testing = false);
+      if (mounted) setState(() => _testing = false);
     }
   }
 
