@@ -53,7 +53,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _error = null;
     });
 
-    await _chewieController?.dispose();
+    if (_chewieController != null) {
+      _chewieController!.dispose();
+    }
     _chewieController = null;
     _videoController?.dispose();
     _videoController = null;
