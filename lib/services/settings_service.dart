@@ -7,7 +7,7 @@ class SettingsService {
   static const _baseUrlKey = 'api.base_url.v1';
   static const _defaultTypeKey = 'settings.default_type.v1';
   static const _lastProviderKey = 'settings.last_provider.v1';
-  static const _useStreamProxyKey = 'settings.use_stream_proxy.v1';
+  static const _useStreamProxyKey = 'settings.use_stream_proxy.v2';
 
   final SharedPreferences _prefs;
 
@@ -25,13 +25,22 @@ class SettingsService {
   set lastProvider(String value) => _prefs.setString(_lastProviderKey, value);
 
   /// Quando `true`, repassa URLs de vídeo por `/v1/stream?url=...` antes
-  /// de enviar ao player. Útil quando o CDN rejeita `Origin` estrangeiro
-  /// (caso de WebView, Ionic, Electron, etc). Para ExoPlayer nativo
-  /// no Android o padrão pode ser `false` (URL direta).
+  /// de enviar ao player.
   ///
-  /// Default: `false` — Flutter usa `video_player` que internamente usa
-  /// ExoPlayer/Media3 (nativo), então não envia `Origin`.
-  bool get useStreamProxy => _prefs.getBool(_useStreamProxyKey) ?? false;
+  /// **Padrão: `true`** (desde a v1.1.1). Na prática os CDNs dos hosters
+  /// (MixDrop, StreamWish, VidHide) rejeitam qualquer requisição direta
+  /// com 403 — não apenas por `Origin` estrangeiro, mas também por IP/
+  /// token. O proxy `/v1/stream` resolve isso server-side enviando os
+  /// headers corretos. Sem ele, o player mostra "Nenhuma fonte
+  /// disponível".
+  ///
+  /// Só desligue se você souber exatamente o que está fazendo.
+  bool get useStreamProxy {
+    // Se a chave nunca foi escrita, default = true.
+    if (!_prefs.containsKey(_useStreamProxyKey)) return true;
+    return _prefs.getBool(_useStreamProxyKey) ?? true;
+  }
+
   set useStreamProxy(bool value) =>
       _prefs.setBool(_useStreamProxyKey, value);
 

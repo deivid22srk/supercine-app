@@ -57,19 +57,15 @@ lib/
 | `GET /v1/resolve?imdb=...&type=...` | URL direta do filme |
 | `GET /v1/resolveEpisode?imdb=...&season=...&episode=...` | URL direta do episódio |
 | `GET /v1/seasons?imdb=...` | Temporadas + episódios |
-| `GET /v1/stream?url=...` | **(v1.4.0)** Proxy de reprodução (opcional, contorna CORS/Origin dos CDNs) |
+| `GET /v1/stream?url=...` | **(v1.4.0)** Proxy de reprodução (ativo por padrão — contorna 403 dos CDNs) |
 | `GET /v1/health` | Status do proxy |
 | `GET /v1/providers` | Lista de provedores |
 
 ## Proxy de stream `/v1/stream` (v1.4.0)
 
-Os CDNs dos hosters (MixDrop, StreamWish, VidHide) rejeitam `Origin` estrangeiro com 403. Clientes **navegador/WebView** precisam passar a URL por `/v1/stream?url=...`.
+Os CDNs dos hosters (MixDrop, StreamWish, VidHide) rejeitam qualquer acesso direto com 403 — não apenas por `Origin` estrangeiro, mas também por IP/token. Por isso, o app vem com o proxy **ligado por padrão** (desde v1.1.1): todas as URLs de vídeo passam por `<proxy>/v1/stream?url=...`, que faz o fetch server-side com os headers corretos.
 
-Como o Flutter usa `video_player` (ExoPlayer/Media3 nativo), o app vem com o proxy **desligado por padrão** (URL direta). Ative em Configurações → Reprodução → "Usar proxy de stream" se:
-
-- Aparecer erro 403 do CDN ao reproduzir
-- Você estiver usando uma WebView dentro do Flutter
-- Quiser debugar via proxy
+Você pode desativar em Configurações → Reprodução → "Usar proxy de stream" apenas para debug, mas na prática o vídeo não vai tocar sem o proxy.
 
 ## Build local
 
@@ -105,6 +101,14 @@ Veja [`docs/OUTPUT_API.md`](https://github.com/deivid22srk/supercine-proxy/blob/
 ---
 
 ## Changelog
+
+### v1.1.1 — Correção de "Nenhuma fonte disponível"
+
+- 🐛 **Corrigido o bug de reprodução**: o app agora usa `/v1/stream` por **padrão** (em vez de opt-in). Na prática, os CDNs dos hosters (StreamWish/MixDrop/VidHide) bloqueiam qualquer acesso direto com 403 — não apenas por `Origin` estrangeiro, mas também por IP/token. Sem o proxy, o player falhava com "Nenhuma fonte disponível".
+- 🐛 Player agora envia `User-Agent` estilo Chrome Mobile (alguns CDNs bloqueiam o UA padrão do ExoPlayer).
+- ✨ Mensagens de erro mais úteis no player (explica causa provável + botão "Tentar de novo").
+- ✨ Auto-fallback para próximo servidor quando o vídeo falha em runtime.
+- 🔧 Migração automática da chave de settings (`v1` → `v2`) para que usuários existentes peguem o novo padrão.
 
 ### v1.1.0 — Suporte à Output API v1.4.0
 

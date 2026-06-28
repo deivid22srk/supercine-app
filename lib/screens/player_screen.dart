@@ -43,7 +43,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _initVideo(int idx) async {
     if (idx >= _args.videos.length) {
       setState(() {
-        _error = 'Nenhuma fonte de vídeo disponível.';
+        _error = _args.videos.isEmpty
+            ? 'Nenhuma fonte de vídeo disponível.\n\n'
+                'Isso pode acontecer quando:\n'
+                '• O proxy não conseguiu extrair a URL do CDN\n'
+                '• O título não está disponível em nenhum provedor\n\n'
+                'Tente novamente em alguns segundos.'
+            : 'Todos os servidores falharam ao carregar o vídeo.\n\n'
+                'Se você desativou o proxy de stream em Configurações,\n'
+                'ative-o — os CDNs dos hosters bloqueiam acesso direto.';
         _loading = false;
       });
       return;
@@ -63,21 +71,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     final videoUrl = _args.videos[idx];
     final url = videoUrl.url;
-    // Detecta HLS tanto pela extensão quanto pela qualidade retornada
-    // (quando proxyada, a URL já vem com `/v1/stream?url=...` que esconde
-    // a extensão, então a flag `isHls` da `VideoUrl` é mais confiável).
+    // Detecta HLS por:
+    //   1. flag `isHls` da `VideoUrl` (qualidade = "HLS (m3u8)") — confiável
+    //      mesmo quando a URL está proxyada por /v1/stream e não termina em .m3u8
+    //   2. extensão .m3u8 no path da URL (caso direto, sem proxy)
+    // IMPORTANTE: quando o proxy /v1/stream está ativo, a URL proxyada
+    // também serve HLS — o Content-Type vem do servidor, mas o ExoPlayer
+    // precisa do formatHint correto para iniciar o demuxer HLS antes do
+    // primeiro byte chegar.
     final isHls = videoUrl.isHls ||
         Uri.tryParse(url)?.path.toLowerCase().endsWith('.m3u8') == true;
 
+    // User-Agent estilo navegador Chrome desktop. Alguns CDNs bloqueiam
+    // o UA padrão do ExoPlayer ("ExoPlayer"), então enviamos um UA
+    // genérico para evitar falsos negativos mesmo quando usando o proxy
+    // (o proxy /v1/stream reescreve o UA dele próprio, mas isso aqui
+    // ajuda no caso de URL direta).
+    const userAgent =
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/137.0.0.0 Mobile Safari/537.36';
+
     final newVideoController = isHls
-        ? VideoPlayerController.networkUrl(Uri.parse(url),
-            formatHint: VideoFormat.hls)
-        : VideoPlayerController.networkUrl(Uri.parse(url));
+        ? VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            formatHint: VideoFormat.hls,
+            httpHeaders: {'User-Agent': userAgent},
+          )
+        : VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            httpHeaders: {'User-Agent': userAgent},
+          );
 
     try {
       await newVideoController.initialize();
     } catch (e) {
-      // Tenta próximo servidor
+      // Falha ao inicializar o controller (403 do CDN, URL expirada, etc).
+      // Tenta o próximo servidor antes de desistir.
+      debugPrint('[Player] Falhou servidor $idx: $e');
       if (mounted) {
         await newVideoController.dispose();
         _initVideo(idx + 1);
@@ -105,31 +135,48 @@ class _PlayerScreenState extends State<PlayerScreen> {
         bufferedColor: SupercineColors.brand.withValues(alpha: 0.3),
         backgroundColor: SupercineColors.surfaceAlt,
       ),
-      errorBuilder: (context, errorMessage) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded,
-                  color: SupercineColors.danger, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                errorMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              if (idx + 1 < _args.videos.length)
-                ElevatedButton.icon(
-                  onPressed: () => _initVideo(idx + 1),
-                  icon: const Icon(Icons.skip_next_rounded),
-                  label: const Text('Tentar próximo servidor'),
+      errorBuilder: (context, errorMessage) {
+        // Se falhar em runtime (URL expirou no meio da reprodução, etc),
+        // tenta automaticamente o próximo servidor.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && idx + 1 < _args.videos.length) {
+            _initVideo(idx + 1);
+          }
+        });
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    color: SupercineColors.danger, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  errorMessage.isNotEmpty
+                      ? errorMessage
+                      : 'Falha ao carregar o vídeo. Tentando próximo servidor…',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
                 ),
-            ],
+                const SizedBox(height: 16),
+                if (idx + 1 < _args.videos.length)
+                  ElevatedButton.icon(
+                    onPressed: () => _initVideo(idx + 1),
+                    icon: const Icon(Icons.skip_next_rounded),
+                    label: const Text('Tentar próximo servidor'),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                    label: const Text('Fechar'),
+                  ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     setState(() => _loading = false);
@@ -298,13 +345,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(
+                    color: Colors.white, height: 1.4, fontSize: 13),
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded),
-                label: const Text('Fechar'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _error = null;
+                        _loading = true;
+                      });
+                      _initVideo(0);
+                    },
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Tentar de novo'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Fechar'),
+                  ),
+                ],
               ),
             ],
           ),

@@ -221,12 +221,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           _SectionCard(
             title: 'Sobre o app',
-            subtitle: 'Supercine App v1.1.0 • Flutter • HBO Max-like UI.',
+            subtitle: 'Supercine App v1.1.1 • Flutter • HBO Max-like UI.',
             icon: Icons.info_outline_rounded,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _row('Versão', '1.1.0'),
+                _row('Versão', '1.1.1'),
                 _row('API', 'Output API v1.4.0'),
                 _row('Desenvolvido por', '@deivid22srk'),
               ],
@@ -497,13 +497,13 @@ class _ProxyToggle extends StatelessWidget {
           decoration: BoxDecoration(
             color: (value
                     ? SupercineColors.brand
-                    : SupercineColors.info)
+                    : SupercineColors.warning)
                 .withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: (value
                       ? SupercineColors.brand
-                      : SupercineColors.info)
+                      : SupercineColors.warning)
                   .withValues(alpha: 0.4),
             ),
           ),
@@ -511,25 +511,26 @@ class _ProxyToggle extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                value ? Icons.vpn_lock_rounded : Icons.bolt_rounded,
+                value ? Icons.vpn_lock_rounded : Icons.warning_amber_rounded,
                 color: value
                     ? SupercineColors.brand
-                    : SupercineColors.info,
+                    : SupercineColors.warning,
                 size: 18,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   value
-                      ? 'ON: todas as URLs passam pelo proxy. Necessário '
-                          'para WebView/navegador. Pode aumentar a latência.'
-                      : 'OFF (padrão): usa URLs diretas. Recomendado para '
-                          'Flutter (ExoPlayer nativo). Ative só se aparecer '
-                          'erro 403 do CDN ao reproduzir.',
+                      ? 'ON (recomendado): as URLs passam pelo proxy '
+                          '/v1/stream, que envia os headers corretos para '
+                          'o CDN. Necessário porque StreamWish/MixDrop/'
+                          'VidHide bloqueiam acesso direto com 403.'
+                      : 'OFF: usa URLs diretas. Pode falhar com 403 na '
+                          'maioria dos títulos — só desligue para debug.',
                   style: TextStyle(
                     color: value
                         ? SupercineColors.brand
-                        : SupercineColors.info,
+                        : SupercineColors.warning,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
